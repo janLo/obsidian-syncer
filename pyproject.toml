@@ -1,0 +1,19 @@
+[project]
+name = "obsidian-syncer"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "gkeepapi>=0.17.1",
+    "pydantic>=2.13.2",
+    "pyyaml>=6.0.3",
+]
+
+[dependency-groups]
+dev = [
+    "mkdocs-material>=9.7.6",
+    "pytest>=9.0.3",
+]
+[project.scripts]
+obsidian-syncer = "obsidian_syncer.main:main"

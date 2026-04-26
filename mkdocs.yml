@@ -1,0 +1,8 @@
+site_name: Obsidian Sync Server
+theme:
+  name: material
+  palette:
+    scheme: slate
+
+nav:
+  - Setup: index.md
