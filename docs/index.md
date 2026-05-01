@@ -71,3 +71,30 @@ docker run -d \
   -e KEEP_PASSWORD=... \
   ghcr.io/yourusername/obsidian-syncer:latest
 ```
+
+## Running with Docker Compose
+
+For a more persistent setup, you can use Docker Compose. An example `docker-compose.yml` is included in the repository:
+
+```yaml
+services:
+  obsidian-syncer:
+    image: ghcr.io/yourusername/obsidian-syncer:latest
+    container_name: obsidian-syncer
+    restart: unless-stopped
+    volumes:
+      - ./config.yaml:/config.yaml:ro
+      - ./vaults:/vaults
+      - ./ob-config:/root/.config
+    environment:
+      - NC_USER=${NC_USER}
+      - NC_PASSWORD=${NC_PASSWORD}
+      - KEEP_USER=${KEEP_USER}
+      - KEEP_PASSWORD=${KEEP_PASSWORD}
+```
+
+Run the container in the background using:
+
+```bash
+docker compose up -d
+```

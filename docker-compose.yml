@@ -1,0 +1,14 @@
+services:
+  obsidian-syncer:
+    image: ghcr.io/yourusername/obsidian-syncer:latest
+    container_name: obsidian-syncer
+    restart: unless-stopped
+    volumes:
+      - ./config.yaml:/config.yaml:ro
+      - ./vaults:/vaults
+      - ./ob-config:/root/.config
+    environment:
+      - NC_USER=${NC_USER}
+      - NC_PASSWORD=${NC_PASSWORD}
+      - KEEP_USER=${KEEP_USER}
+      - KEEP_PASSWORD=${KEEP_PASSWORD}
