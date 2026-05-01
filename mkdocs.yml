@@ -1,8 +1,25 @@
 site_name: Obsidian Sync Server
+repo_url: https://github.com/janlo/obsidian-syncer
 theme:
   name: material
   palette:
     scheme: slate
+  features:
+    - navigation.tabs
+    - content.code.copy
+    - search.suggest
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
 
 nav:
-  - Setup: index.md
+  - Home: index.md
+  - Configuration: configuration.md
+  - Authentication: authentication.md
+  - Deployment: deployment.md
