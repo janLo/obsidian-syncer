@@ -1,6 +1,6 @@
 services:
   obsidian-syncer:
-    image: ghcr.io/yourusername/obsidian-syncer:latest
+    image: ghcr.io/janlo/obsidian-syncer:latest
     container_name: obsidian-syncer
     restart: unless-stopped
     volumes:

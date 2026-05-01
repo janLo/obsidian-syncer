@@ -69,7 +69,7 @@ docker run -d \
   -e NC_PASSWORD=... \
   -e KEEP_USER=... \
   -e KEEP_PASSWORD=... \
-  ghcr.io/yourusername/obsidian-syncer:latest
+  ghcr.io/janlo/obsidian-syncer:latest
 ```
 
 ## Running with Docker Compose
@@ -79,7 +79,7 @@ For a more persistent setup, you can use Docker Compose. An example `docker-comp
 ```yaml
 services:
   obsidian-syncer:
-    image: ghcr.io/yourusername/obsidian-syncer:latest
+    image: ghcr.io/janlo/obsidian-syncer:latest
     container_name: obsidian-syncer
     restart: unless-stopped
     volumes:
