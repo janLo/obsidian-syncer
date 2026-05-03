@@ -2,24 +2,20 @@
 
 ### Google Keep
 
-To securely authenticate with Google Keep via `gkeepapi`, standard passwords are not recommended as they may trigger Google's automated security blocks. Instead, use an **App Password** (recommended) or a **Master Token**.
+To securely authenticate with Google Keep via `gkeepapi`, standard passwords and App Passwords are no longer supported for continuous syncing. Google's automated security blocks frequent login requests, so you **MUST** use a **Master Token**.
 
-#### Using an App Password (Recommended)
+#### Generating a Master Token
 
-An App Password is a 16-digit passcode that gives an app or device permission to access your Google Account. This requires 2-Step Verification to be enabled.
-
-1. Go to your [Google Account](https://myaccount.google.com/).
-2. Navigate to **Security** on the left panel.
-3. Ensure **2-Step Verification** is turned **On**.
-4. Search for "**App passwords**" in the top search bar (or find it under the 2-Step Verification settings).
-5. Enter a name for the app (e.g., "Obsidian Syncer") and click **Create**.
-6. Copy the generated 16-character password (you can omit the spaces) and use it as your `KEEP_PASSWORD` environment variable.
-
-#### Using a Master Token (Advanced)
-
-If you prefer not to use an App Password, you can extract a Master Token. The Master Token is a long string that acts as a secure session token.
-
-Use the Master Token directly as the `KEEP_PASSWORD` in your configuration. Note that Master Tokens may eventually expire or be revoked by Google if suspicious activity is detected.
+1. Ensure you have 2-Step Verification enabled on your [Google Account](https://myaccount.google.com/).
+2. Navigate to **Security** and search for "**App passwords**".
+3. Create a new App Password (e.g., for "Obsidian Syncer") and copy the 16-character string.
+4. Run the included helper script in the repository:
+   ```bash
+   uv run scripts/get_keep_token.py
+   ```
+5. Follow the prompts to enter your email and the App Password.
+6. The script will output a Master Token (starts with `aas_et/`).
+7. Use this Master Token as your `KEEP_PASSWORD` environment variable. Keep it secret!
 
 !!! tip "Nextcloud Credentials"
     Pass your Nextcloud credentials via environment variables (`NC_USER` and `NC_PASSWORD`). The configuration file will dynamically expand these variables to prevent hardcoding secrets.

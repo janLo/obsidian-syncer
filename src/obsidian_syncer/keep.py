@@ -12,12 +12,19 @@ def sync_keep(config: KeepConfig):
     logger.info("Starting Google Keep sync...")
     keep = gkeepapi.Keep()
     try:
-        success = keep.login(config.username, config.password)
-        if not success:
-            logger.error("Failed to login to Google Keep.")
-            return
+        # Check if the user is mistakenly using an App Password instead of a Master Token
+        if not config.password.startswith("aas_et/"):
+            logger.warning("Your KEEP_PASSWORD does not look like a Master Token. "
+                           "If authentication fails, please generate a Master Token. "
+                           "Using 'Keep.login' is deprecated and often blocked by Google.")
+
+        keep.authenticate(config.username, config.password)
     except gkeepapi.exception.LoginException as e:
         logger.error(f"Keep Login Exception: {e}")
+        if "BadAuthentication" in str(e):
+            logger.error("Authentication failed. Please ensure you are using a Master Token "
+                         "instead of a standard Google password or App Password. "
+                         "You can generate one using the 'scripts/get_keep_token.py' utility.")
         return
 
     os.makedirs(config.target_folder, exist_ok=True)
