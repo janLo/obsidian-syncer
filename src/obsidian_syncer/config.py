@@ -19,6 +19,7 @@ class KeepConfig(BaseModel):
     password: str
     tags: list[str]
     ignore_tags: list[str] = []
+    inline_tags_label: Optional[str] = None
     mark_synced_tag: Optional[str] = None
     target_folder: str
 

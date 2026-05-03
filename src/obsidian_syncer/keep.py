@@ -29,36 +29,26 @@ def sync_keep(config: KeepConfig):
 
     os.makedirs(config.target_folder, exist_ok=True)
 
-    labels = []
-    for tag_name in config.tags:
-        label = keep.findLabel(tag_name)
-        if label:
-            labels.append(label)
-        else:
-            logger.warning(f"Label '{tag_name}' not found in Google Keep.")
+    required_tag_names = set(config.tags)
+    ignore_tag_names = set(config.ignore_tags)
 
-    if not labels:
-        logger.warning("No labels found to sync.")
+    if not required_tag_names:
+        logger.warning("No tags specified in config to sync.")
         return
 
-    required_label_ids = {label.id for label in labels}
-
-    ignore_labels = []
     for tag_name in config.ignore_tags:
-        label = keep.findLabel(tag_name)
-        if label:
-            ignore_labels.append(label)
-        else:
+        if not keep.findLabel(tag_name):
             logger.warning(f"Ignore label '{tag_name}' not found in Google Keep.")
 
-    ignore_label_ids = {label.id for label in ignore_labels}
+    for tag_name in config.tags:
+        if not keep.findLabel(tag_name):
+            logger.warning(f"Label '{tag_name}' not found in Google Keep.")
 
-    # Pass labels to find as an initial filter, then strictly check them all
-    notes = keep.find(labels=labels)
+    notes = keep.all()
     notes_modified = False
 
     synced_label = None
-    if getattr(config, 'mark_synced_tag', None):
+    if config.mark_synced_tag:
         synced_label = keep.findLabel(config.mark_synced_tag)
         if not synced_label:
             logger.info(f"Label '{config.mark_synced_tag}' not found in Keep. Creating it...")
@@ -69,13 +59,26 @@ def sync_keep(config: KeepConfig):
         if note.archived or note.trashed:
             continue
             
+        note_tags_names = {label.name for label in note.labels.all()}
+
+        # Parse inline tags if the note has the inline_tags_label
+        if config.inline_tags_label and config.inline_tags_label in note_tags_names:
+            note_text = getattr(note, 'text', '')
+            lines = note_text.strip().splitlines()
+            if lines:
+                last_line = lines[-1]
+                import re
+                # Find all hashtags in the last line (e.g. #tagA #tagB)
+                hashtags = re.findall(r'#([A-Za-z0-9_/-]+)', last_line)
+                if hashtags:
+                    note_tags_names.update(hashtags)
+
         # 2. Strict tag matching (AND condition)
-        note_label_ids = {label.id for label in note.labels.all()}
-        if not required_label_ids.issubset(note_label_ids):
+        if not required_tag_names.issubset(note_tags_names):
             continue
 
         # 3. Check for ignored tags
-        if not ignore_label_ids.isdisjoint(note_label_ids):
+        if not ignore_tag_names.isdisjoint(note_tags_names):
             logger.info(f"Skipping Keep note '{note.title or 'Untitled'}' due to ignore_tags match.")
             continue
 
@@ -90,18 +93,16 @@ def sync_keep(config: KeepConfig):
 
         # 4. Add frontmatter with metadata
         created_str = note.timestamps.created.isoformat()
-        note_tags = [label.name for label in note.labels.all()]
-        
         frontmatter = "---\n"
         frontmatter += f"created: {created_str}\n"
-        if note_tags:
+        if note_tags_names:
             frontmatter += "tags:\n"
-            for tag in note_tags:
+            for tag in sorted(note_tags_names):
                 # remove spaces from tags to be safe, or just keep them? Obsidian supports spaces in frontmatter tags
                 frontmatter += f"  - {tag}\n"
         frontmatter += "---\n"
 
-        content = f"{frontmatter}\n# {title}\n\n{note.text}\n"
+        content = f"{frontmatter}\n# {title}\n\n{getattr(note, 'text', '')}\n"
 
         try:
             with open(filepath, "w", encoding="utf-8") as f:
