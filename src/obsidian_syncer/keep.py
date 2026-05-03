@@ -66,7 +66,11 @@ def sync_keep(config: KeepConfig):
         if note.archived or note.trashed:
             continue
             
-        note_tags_names = {label.name.lower() for label in note.labels.all()}
+        original_note_tags_names = {label.name.lower() for label in note.labels.all()}
+        note_tags_names = set(original_note_tags_names)
+
+        # To retain the original case for newly created Keep labels
+        extracted_tags_original_case = []
 
         # Check if the note has a Gemini WebLink annotation
         has_gemini_link = False
@@ -92,12 +96,34 @@ def sync_keep(config: KeepConfig):
                     if line_stripped.lower().startswith("labels:"):
                         labels_str = line_stripped[7:].strip()
                         # Split by comma or space
-                        extracted_labels = [l.lower() for l in re.split(r'[,\s]+', labels_str) if l]
-                        note_tags_names.update(extracted_labels)
+                        extracted_labels = [l for l in re.split(r'[,\s]+', labels_str) if l]
+                        extracted_tags_original_case.extend(extracted_labels)
+                        note_tags_names.update([l.lower() for l in extracted_labels])
                     
                     hashtags = re.findall(r'#([A-Za-z0-9_/-]+)', line_stripped)
                     if hashtags:
+                        extracted_tags_original_case.extend(hashtags)
                         note_tags_names.update([t.lower() for t in hashtags])
+
+        # Add extracted tags back to Keep
+        if extracted_tags_original_case:
+            for tag_original in extracted_tags_original_case:
+                tag_lower = tag_original.lower()
+                if tag_lower not in original_note_tags_names:
+                    # Find or create label
+                    new_label = None
+                    for label in keep.labels.all():
+                        if label.name.lower() == tag_lower:
+                            new_label = label
+                            break
+                    if not new_label:
+                        logger.info(f"Label '{tag_original}' not found in Keep. Creating it...")
+                        new_label = keep.createLabel(tag_original)
+                    
+                    note.labels.add(new_label)
+                    notes_modified = True
+                    original_note_tags_names.add(tag_lower)
+                    logger.info(f"Added extracted tag '{tag_original}' to Keep note '{note.title or 'Untitled'}'.")
 
         # 2. Strict tag matching (AND condition)
         if not required_tag_names.issubset(note_tags_names):
