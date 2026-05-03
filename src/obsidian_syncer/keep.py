@@ -61,17 +61,36 @@ def sync_keep(config: KeepConfig):
             
         note_tags_names = {label.name for label in note.labels.all()}
 
-        # Parse inline tags if the note has the inline_tags_label
-        if config.inline_tags_label and config.inline_tags_label in note_tags_names:
+        # Check if the note has a Gemini WebLink annotation
+        has_gemini_link = False
+        if hasattr(note, 'annotations'):
+            has_gemini_link = any(
+                isinstance(item, gkeepapi.node.WebLink) and getattr(item, 'url', '').startswith("https://gemini.google.com")
+                for ann in note.annotations.all()
+                for item in ann.all()
+            )
+
+        # Parse inline tags if the note has the inline_tags_label or a Gemini link
+        if (config.inline_tags_label and config.inline_tags_label in note_tags_names) or has_gemini_link:
             note_text = getattr(note, 'text', '')
             lines = note_text.strip().splitlines()
             if lines:
-                last_line = lines[-1]
                 import re
-                # Find all hashtags in the last line (e.g. #tagA #tagB)
-                hashtags = re.findall(r'#([A-Za-z0-9_/-]+)', last_line)
-                if hashtags:
-                    note_tags_names.update(hashtags)
+                # Examine the last few lines for tags and labels
+                for line in lines[-5:]:
+                    line_stripped = line.strip()
+                    if not line_stripped:
+                        continue
+                    
+                    if line_stripped.lower().startswith("labels:"):
+                        labels_str = line_stripped[7:].strip()
+                        # Split by comma or space
+                        extracted_labels = [l for l in re.split(r'[,\s]+', labels_str) if l]
+                        note_tags_names.update(extracted_labels)
+                    
+                    hashtags = re.findall(r'#([A-Za-z0-9_/-]+)', line_stripped)
+                    if hashtags:
+                        note_tags_names.update(hashtags)
 
         # 2. Strict tag matching (AND condition)
         if not required_tag_names.issubset(note_tags_names):
