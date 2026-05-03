@@ -73,6 +73,31 @@ Tools like the `ob` CLI and `nextcloudcmd` store their session tokens and sync c
 > [!NOTE]
 > **In summary:** The container boots up, reads your **Instructions** (`config.yaml`), uses its **Memory** (`/root/.config`) to remember you're already logged in, and manages your notes in the **Workspace** (`/vaults`).
 
+## Health Monitoring
+
+The Docker image includes a built-in `HEALTHCHECK`. After each successful sync cycle, the daemon writes a timestamp to an internal file. Docker verifies every 5 minutes that this timestamp is less than 10 minutes old.
+
+You can check the container's health status at any time:
+
+```bash
+docker inspect --format='{{.State.Health.Status}}' obsidian-syncer
+```
+
+Or see it in the `docker compose ps` output:
+
+```bash
+docker compose ps
+```
+
+| Status | Meaning |
+|---|---|
+| `healthy` | The sync loop completed within the last 10 minutes. |
+| `unhealthy` | The sync loop has not completed recently — check logs. |
+| `starting` | The container just started and hasn't completed its first cycle yet. |
+
+!!! tip "Auto-Restart on Unhealthy"
+    Docker Compose does not natively restart on `unhealthy` status, but you can add the [`autoheal`](https://github.com/willfarrell/docker-autoheal) container alongside your stack, or use Docker Swarm which supports `restart_policy` with health checks.
+
 ## Troubleshooting
 
 If you encounter issues during synchronization, you can enable more detailed logging by setting the `LOG_LEVEL` environment variable to `DEBUG`. 
@@ -93,3 +118,4 @@ docker run -d \
   -e LOG_LEVEL=DEBUG \
   ghcr.io/janlo/obsidian-syncer:latest
 ```
+
