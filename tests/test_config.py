@@ -1,5 +1,4 @@
 import os
-import pytest
 import tempfile
 from obsidian_syncer.config import load_config, expand_env_vars, AppConfig
 

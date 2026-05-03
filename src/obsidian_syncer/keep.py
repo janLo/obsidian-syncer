@@ -73,7 +73,7 @@ def extract_inline_tags(note_text: str) -> List[str]:
         if line_stripped.lower().startswith("labels:"):
             labels_str = line_stripped[7:].strip()
             # Split by comma or space
-            extracted_labels = [l for l in re.split(r'[,\s]+', labels_str) if l]
+            extracted_labels = [lbl for lbl in re.split(r'[,\s]+', labels_str) if lbl]
             extracted_tags.extend(extracted_labels)
         
         # Check for hashtags

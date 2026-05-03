@@ -2,7 +2,6 @@ import os
 import tempfile
 from unittest.mock import MagicMock
 from datetime import datetime
-import pytest
 import gkeepapi
 
 from obsidian_syncer.keep import (
@@ -33,13 +32,13 @@ def test_extract_inline_tags():
 
 def test_should_sync_note():
     # Required subset matches, no ignore matches -> True
-    assert should_sync_note({"tag1", "tag2"}, {"tag1"}, {"ignore1"}) == True
+    assert should_sync_note({"tag1", "tag2"}, {"tag1"}, {"ignore1"}) is True
     
     # Required subset does not match -> False
-    assert should_sync_note({"tag2"}, {"tag1"}, {"ignore1"}) == False
+    assert should_sync_note({"tag2"}, {"tag1"}, {"ignore1"}) is False
     
     # Required matches, but ignore matches -> False
-    assert should_sync_note({"tag1", "ignore1"}, {"tag1"}, {"ignore1"}) == False
+    assert should_sync_note({"tag1", "ignore1"}, {"tag1"}, {"ignore1"}) is False
 
 def test_has_gemini_link():
     # Mock node
@@ -47,7 +46,7 @@ def test_has_gemini_link():
     
     # No annotations
     note.annotations = None
-    assert has_gemini_link(note) == False
+    assert has_gemini_link(note) is False
 
     # WebLink, but not Gemini
     ann = MagicMock(spec=gkeepapi.node.WebLink)
@@ -55,13 +54,13 @@ def test_has_gemini_link():
     
     note.annotations = MagicMock()
     note.annotations.all.return_value = [ann]
-    assert has_gemini_link(note) == False
+    assert has_gemini_link(note) is False
 
     # Gemini WebLink
     ann_gemini = MagicMock(spec=gkeepapi.node.WebLink)
     ann_gemini.url = "https://gemini.google.com/test"
     note.annotations.all.return_value = [ann_gemini]
-    assert has_gemini_link(note) == True
+    assert has_gemini_link(note) is True
 
 def test_format_note_content():
     note = MagicMock(spec=gkeepapi.node.Note)
