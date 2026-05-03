@@ -41,8 +41,20 @@ def sync_keep(config: KeepConfig):
         logger.warning("No labels found to sync.")
         return
 
+    required_label_ids = {label.id for label in labels}
+
+    # Pass labels to find as an initial filter, then strictly check them all
     notes = keep.find(labels=labels)
     for note in notes:
+        # 1. Skip archived or trashed notes
+        if note.archived or note.trashed:
+            continue
+            
+        # 2. Strict tag matching (AND condition)
+        note_label_ids = {label.id for label in note.labels.all()}
+        if not required_label_ids.issubset(note_label_ids):
+            continue
+
         # Create a safe filename
         title = note.title or "Untitled"
         safe_title = "".join([c for c in title if c.isalnum() or c in ' -_']).strip()
@@ -52,7 +64,20 @@ def sync_keep(config: KeepConfig):
         filename = f"{safe_title}.md"
         filepath = os.path.join(config.target_folder, filename)
 
-        content = f"# {title}\n\n{note.text}\n"
+        # 3. Add frontmatter with metadata
+        created_str = note.timestamps.created.isoformat()
+        note_tags = [label.name for label in note.labels.all()]
+        
+        frontmatter = "---\n"
+        frontmatter += f"created: {created_str}\n"
+        if note_tags:
+            frontmatter += "tags:\n"
+            for tag in note_tags:
+                # remove spaces from tags to be safe, or just keep them? Obsidian supports spaces in frontmatter tags
+                frontmatter += f"  - {tag}\n"
+        frontmatter += "---\n"
+
+        content = f"{frontmatter}\n# {title}\n\n{note.text}\n"
 
         try:
             # We are doing a simple pull-only.

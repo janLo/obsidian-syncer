@@ -52,13 +52,13 @@ To authenticate, you should run the container interactively once:
 ### Google Keep
 For reliable syncing, standard passwords and App Passwords are no longer supported for continuous syncing, as Google's security blocks frequent login requests. You **MUST** use a **Master Token**.
 
-To generate a Master Token:
-1. Ensure you have 2FA enabled on your Google account and generate an **App Password**.
-2. Run the included helper script:
-   ```bash
-   uv run scripts/get_keep_token.py
-   ```
-3. Use the generated Master Token (starts with `aas_et/`) as your `KEEP_PASSWORD`.
+To generate a Master Token, run the included helper script which supports two authentication flows: the App Password flow and the OAuth Cookie flow.
+
+```bash
+uv run scripts/get_keep_token.py
+```
+
+Follow the prompts to generate your Master Token (starts with `aas_et/`). Use this Master Token as your `KEEP_PASSWORD` environment variable. For detailed instructions on the authentication flows, please refer to the [Authentication Guidelines](docs/authentication.md).
 
 ### Nextcloud
 Pass your Nextcloud credentials via environment variables (`NC_USER` and `NC_PASSWORD`). The configuration file will dynamically expand these variables to prevent hardcoding secrets.
