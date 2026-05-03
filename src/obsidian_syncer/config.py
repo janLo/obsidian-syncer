@@ -18,6 +18,8 @@ class KeepConfig(BaseModel):
     username: str
     password: str
     tags: list[str]
+    ignore_tags: list[str] = []
+    mark_synced_tag: Optional[str] = None
     target_folder: str
 
 class SyncSet(BaseModel):
