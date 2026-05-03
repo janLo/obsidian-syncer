@@ -74,11 +74,16 @@ def sync_keep(config: KeepConfig):
 
         # Check if the note has a Gemini WebLink annotation
         has_gemini_link = False
-        if hasattr(note, 'annotations'):
+        if hasattr(note, 'annotations') and note.annotations is not None:
+            def _iter_annotations(annotations_obj):
+                for ann in annotations_obj.all():
+                    yield ann
+                    if hasattr(ann, 'all'):
+                        yield from ann.all()
+            
             has_gemini_link = any(
-                isinstance(item, gkeepapi.node.WebLink) and getattr(item, 'url', '').startswith("https://gemini.google.com")
-                for ann in note.annotations.all()
-                for item in ann.all()
+                isinstance(ann, gkeepapi.node.WebLink) and getattr(ann, 'url', '').startswith("https://gemini.google.com")
+                for ann in _iter_annotations(note.annotations)
             )
 
         # Parse inline tags if the note has the inline_tags_label or a Gemini link
