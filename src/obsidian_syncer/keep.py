@@ -36,7 +36,7 @@ def sync_keep(config: KeepConfig):
         logger.warning("No tags specified in config to sync.")
         return
 
-    keep_label_names = {label.name.lower() for label in keep.labels.all()}
+    keep_label_names = {label.name.lower() for label in keep.labels()}
 
     for tag_name in config.ignore_tags:
         if tag_name.lower() not in keep_label_names:
@@ -53,7 +53,7 @@ def sync_keep(config: KeepConfig):
     if config.mark_synced_tag:
         synced_label = keep.findLabel(config.mark_synced_tag)
         if not synced_label:
-            for label in keep.labels.all():
+            for label in keep.labels():
                 if label.name.lower() == config.mark_synced_tag.lower():
                     synced_label = label
                     break
@@ -112,7 +112,7 @@ def sync_keep(config: KeepConfig):
                 if tag_lower not in original_note_tags_names:
                     # Find or create label
                     new_label = None
-                    for label in keep.labels.all():
+                    for label in keep.labels():
                         if label.name.lower() == tag_lower:
                             new_label = label
                             break
