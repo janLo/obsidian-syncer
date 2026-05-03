@@ -29,19 +29,21 @@ def sync_keep(config: KeepConfig):
 
     os.makedirs(config.target_folder, exist_ok=True)
 
-    required_tag_names = set(config.tags)
-    ignore_tag_names = set(config.ignore_tags)
+    required_tag_names = {t.lower() for t in config.tags}
+    ignore_tag_names = {t.lower() for t in config.ignore_tags}
 
     if not required_tag_names:
         logger.warning("No tags specified in config to sync.")
         return
 
+    keep_label_names = {label.name.lower() for label in keep.labels.all()}
+
     for tag_name in config.ignore_tags:
-        if not keep.findLabel(tag_name):
+        if tag_name.lower() not in keep_label_names:
             logger.warning(f"Ignore label '{tag_name}' not found in Google Keep.")
 
     for tag_name in config.tags:
-        if not keep.findLabel(tag_name):
+        if tag_name.lower() not in keep_label_names:
             logger.warning(f"Label '{tag_name}' not found in Google Keep.")
 
     notes = keep.all()
@@ -51,6 +53,11 @@ def sync_keep(config: KeepConfig):
     if config.mark_synced_tag:
         synced_label = keep.findLabel(config.mark_synced_tag)
         if not synced_label:
+            for label in keep.labels.all():
+                if label.name.lower() == config.mark_synced_tag.lower():
+                    synced_label = label
+                    break
+        if not synced_label:
             logger.info(f"Label '{config.mark_synced_tag}' not found in Keep. Creating it...")
             synced_label = keep.createLabel(config.mark_synced_tag)
 
@@ -59,7 +66,7 @@ def sync_keep(config: KeepConfig):
         if note.archived or note.trashed:
             continue
             
-        note_tags_names = {label.name for label in note.labels.all()}
+        note_tags_names = {label.name.lower() for label in note.labels.all()}
 
         # Check if the note has a Gemini WebLink annotation
         has_gemini_link = False
@@ -71,7 +78,7 @@ def sync_keep(config: KeepConfig):
             )
 
         # Parse inline tags if the note has the inline_tags_label or a Gemini link
-        if (config.inline_tags_label and config.inline_tags_label in note_tags_names) or has_gemini_link:
+        if (config.inline_tags_label and config.inline_tags_label.lower() in note_tags_names) or has_gemini_link:
             note_text = getattr(note, 'text', '')
             lines = note_text.strip().splitlines()
             if lines:
@@ -85,12 +92,12 @@ def sync_keep(config: KeepConfig):
                     if line_stripped.lower().startswith("labels:"):
                         labels_str = line_stripped[7:].strip()
                         # Split by comma or space
-                        extracted_labels = [l for l in re.split(r'[,\s]+', labels_str) if l]
+                        extracted_labels = [l.lower() for l in re.split(r'[,\s]+', labels_str) if l]
                         note_tags_names.update(extracted_labels)
                     
                     hashtags = re.findall(r'#([A-Za-z0-9_/-]+)', line_stripped)
                     if hashtags:
-                        note_tags_names.update(hashtags)
+                        note_tags_names.update([t.lower() for t in hashtags])
 
         # 2. Strict tag matching (AND condition)
         if not required_tag_names.issubset(note_tags_names):
