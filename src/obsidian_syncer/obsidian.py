@@ -66,6 +66,3 @@ class ObsidianProcessManager:
                     logger.warning(f"Force killing Obsidian process {process.pid}")
                     process.kill()
         self.processes.clear()
-
-
-obsidian_manager = ObsidianProcessManager()

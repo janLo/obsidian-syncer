@@ -34,5 +34,9 @@ ENV PATH="/opt/venv/bin:$PATH"
 
 RUN uv pip install .
 
+# Healthcheck: verify the sync loop has run within the last 10 minutes
+HEALTHCHECK --interval=5m --timeout=5s --retries=3 \
+  CMD python3 -c "import os,time,sys; f='/tmp/last_sync'; sys.exit(0 if os.path.exists(f) and time.time()-float(open(f).read())<600 else 1)"
+
 # The configuration file is expected to be mounted at /config.yaml
 CMD ["obsidian-syncer", "--config", "/config.yaml"]

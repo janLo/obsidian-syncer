@@ -3,11 +3,25 @@ import re
 import logging
 from typing import Set, List
 import gkeepapi
+from tenacity import (
+    retry,
+    stop_after_attempt,
+    wait_exponential,
+    retry_if_exception_type,
+)
 from .config import KeepConfig
 
 logger = logging.getLogger(__name__)
 
 
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=2, max=30),
+    retry=retry_if_exception_type((ConnectionError, TimeoutError, OSError)),
+    before_sleep=lambda rs: logger.warning(
+        f"Retrying Keep auth (attempt {rs.attempt_number})..."
+    ),
+)
 def authenticate_keep(keep: gkeepapi.Keep, config: KeepConfig) -> bool:
     """Authenticates with Google Keep and handles deprecated auth warnings."""
     try:
@@ -135,8 +149,11 @@ def save_note_to_disk(
     filename = f"{safe_title}.md"
     filepath = os.path.join(target_folder, filename)
 
-    with open(filepath, "w", encoding="utf-8") as f:
+    # Atomic write: write to a temp file, then replace
+    tmp_filepath = filepath + ".tmp"
+    with open(tmp_filepath, "w", encoding="utf-8") as f:
         f.write(content)
+    os.replace(tmp_filepath, filepath)
 
     return filename
 
@@ -246,9 +263,22 @@ def sync_keep(config: KeepConfig):
     if notes_modified:
         logger.info("Pushing tag updates back to Google Keep...")
         try:
-            keep.sync()
+            _push_keep_changes(keep)
             logger.info("Successfully pushed updates to Google Keep.")
         except Exception as e:
             logger.error(f"Failed to push updates to Google Keep: {e}")
 
     logger.info("Google Keep sync completed.")
+
+
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=2, max=30),
+    retry=retry_if_exception_type((ConnectionError, TimeoutError, OSError)),
+    before_sleep=lambda rs: logger.warning(
+        f"Retrying Keep sync push (attempt {rs.attempt_number})..."
+    ),
+)
+def _push_keep_changes(keep: gkeepapi.Keep):
+    """Pushes local label changes back to Google Keep with retry."""
+    keep.sync()
