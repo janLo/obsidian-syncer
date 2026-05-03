@@ -85,13 +85,10 @@ def _cleanup_conflict_files(local_dir: str):
         try:
             # Log a preview of the conflict content before discarding
             try:
-                with open(
-                    conflict_file, "r", encoding="utf-8", errors="replace"
-                ) as cf:
+                with open(conflict_file, "r", encoding="utf-8", errors="replace") as cf:
                     preview = cf.read(500)
                 logger.warning(
-                    f"Discarding conflict file {conflict_file}. "
-                    f"Preview:\n{preview}"
+                    f"Discarding conflict file {conflict_file}. Preview:\n{preview}"
                 )
             except Exception:
                 logger.warning(
