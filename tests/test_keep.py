@@ -112,6 +112,18 @@ def test_save_note_to_disk_empty_title():
 
     with tempfile.TemporaryDirectory() as tmpdir:
         filename = save_note_to_disk(note, content, tmpdir)
+        assert filename == "Untitled.md"
+
+
+def test_save_note_to_disk_unsafe_title():
+    note = MagicMock(spec=gkeepapi.node.Note)
+    note.title = "???"
+    note.id = "123"
+
+    content = "Hello World"
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        filename = save_note_to_disk(note, content, tmpdir)
         assert filename == "Note_123.md"
 
 
