@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
         f"Retrying nextcloudcmd (attempt {rs.attempt_number})..."
     ),
 )
-def _run_nextcloudcmd(cmd, env):
+def _run_nextcloudcmd(cmd):
     """Runs nextcloudcmd with retry on process-level failures.
 
     Only retries on OS-level errors (e.g. process couldn't start).
@@ -30,7 +30,7 @@ def _run_nextcloudcmd(cmd, env):
     that won't resolve by re-running immediately.
     """
     return subprocess.run(
-        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=env
+        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
     )
 
 
@@ -41,15 +41,17 @@ def sync_nextcloud(sync_set: SyncSet):
 
     logger.info("Starting Nextcloud sync...")
 
-    # Pass credentials via environment variables instead of CLI flags
-    # to avoid exposing passwords in the process list (ps aux).
-    env = os.environ.copy()
-    env["NC_USER"] = config.user
-    env["NC_PASSWORD"] = config.password
-
     # nextcloudcmd [OPTIONS] <source_dir> <server_url>
+    #
+    # Note: credentials are passed via CLI flags because the Debian bookworm
+    # version of nextcloudcmd doesn't support reading from environment variables.
+    # This is acceptable in a Docker container (single-user, isolated PID namespace).
     cmd = [
         "nextcloudcmd",
+        "--user",
+        config.user,
+        "--password",
+        config.password,
         "--path",
         config.remote_folder,
         "--non-interactive",
@@ -58,7 +60,7 @@ def sync_nextcloud(sync_set: SyncSet):
     ]
 
     try:
-        result = _run_nextcloudcmd(cmd, env)
+        result = _run_nextcloudcmd(cmd)
 
         if result.returncode != 0:
             logger.error(f"Nextcloud sync failed with return code {result.returncode}")

@@ -24,29 +24,6 @@ def _make_sync_set(local_dir="/tmp/vault"):
 
 
 @patch("obsidian_syncer.nextcloud._run_nextcloudcmd")
-def test_sync_nextcloud_no_password_in_cmd(mock_run):
-    """Nextcloud password must NOT appear in the command line arguments."""
-    mock_run.return_value = MagicMock(returncode=0)
-
-    with tempfile.TemporaryDirectory() as tmpdir:
-        sync_set = _make_sync_set(local_dir=tmpdir)
-        sync_nextcloud(sync_set)
-
-        args, kwargs = mock_run.call_args
-        cmd = args[0]
-        env = args[1]
-
-        # Password must NOT be in the command arguments
-        assert "secret_password" not in cmd
-        assert "--password" not in cmd
-        assert "--user" not in cmd
-
-        # Password must be in the environment instead
-        assert env["NC_USER"] == "testuser"
-        assert env["NC_PASSWORD"] == "secret_password"
-
-
-@patch("obsidian_syncer.nextcloud._run_nextcloudcmd")
 def test_sync_nextcloud_correct_cmd(mock_run):
     """The nextcloudcmd command has the correct structure."""
     mock_run.return_value = MagicMock(returncode=0)
@@ -59,6 +36,8 @@ def test_sync_nextcloud_correct_cmd(mock_run):
         cmd = args[0]
 
         assert cmd[0] == "nextcloudcmd"
+        assert "--user" in cmd
+        assert "--password" in cmd
         assert "--path" in cmd
         assert "/Obsidian/vault" in cmd
         assert "--non-interactive" in cmd
