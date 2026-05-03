@@ -6,7 +6,7 @@ from tenacity import (
     retry,
     stop_after_attempt,
     wait_exponential,
-    retry_if_result,
+    retry_if_exception_type,
 )
 from .config import SyncSet
 
@@ -16,13 +16,19 @@ logger = logging.getLogger(__name__)
 @retry(
     stop=stop_after_attempt(3),
     wait=wait_exponential(multiplier=1, min=5, max=60),
-    retry=retry_if_result(lambda r: r.returncode != 0),
+    retry=retry_if_exception_type((OSError, subprocess.SubprocessError)),
     before_sleep=lambda rs: logger.warning(
         f"Retrying nextcloudcmd (attempt {rs.attempt_number})..."
     ),
 )
 def _run_nextcloudcmd(cmd, env):
-    """Runs nextcloudcmd with retry on non-zero exit codes."""
+    """Runs nextcloudcmd with retry on process-level failures.
+
+    Only retries on OS-level errors (e.g. process couldn't start).
+    Non-zero exit codes from nextcloudcmd are NOT retried because they
+    typically indicate partial sync issues (conflicts, permission errors)
+    that won't resolve by re-running immediately.
+    """
     return subprocess.run(
         cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=env
     )
@@ -60,33 +66,41 @@ def sync_nextcloud(sync_set: SyncSet):
         else:
             logger.info("Nextcloud sync completed successfully.")
 
-        # Handle conflicts: Obsidian is authoritative, delete Nextcloud conflict files
-        search_pattern = os.path.join(sync_set.local_dir, "**", "*_conflict-*")
-        conflict_files = glob.glob(search_pattern, recursive=True)
-        for conflict_file in conflict_files:
-            try:
-                # Log a preview of the conflict content before discarding
-                try:
-                    with open(
-                        conflict_file, "r", encoding="utf-8", errors="replace"
-                    ) as cf:
-                        preview = cf.read(500)
-                    logger.warning(
-                        f"Discarding conflict file {conflict_file}. Preview:\n{preview}"
-                    )
-                except Exception:
-                    logger.warning(
-                        f"Discarding conflict file {conflict_file} "
-                        f"(could not read preview)."
-                    )
-                os.remove(conflict_file)
-                logger.info(
-                    f"Deleted conflict file to maintain Obsidian authority: {conflict_file}"
-                )
-            except OSError as e:
-                logger.error(f"Failed to delete conflict file {conflict_file}: {e}")
+        # Handle conflicts regardless of exit code — Obsidian is authoritative
+        _cleanup_conflict_files(sync_set.local_dir)
 
     except FileNotFoundError:
         logger.error("nextcloudcmd not found. Ensure it is installed in the system.")
     except Exception as e:
         logger.error(f"Nextcloud sync encountered an error: {e}")
+        # Still attempt conflict cleanup even after errors
+        _cleanup_conflict_files(sync_set.local_dir)
+
+
+def _cleanup_conflict_files(local_dir: str):
+    """Deletes Nextcloud conflict files, logging their content first."""
+    search_pattern = os.path.join(local_dir, "**", "*_conflict-*")
+    conflict_files = glob.glob(search_pattern, recursive=True)
+    for conflict_file in conflict_files:
+        try:
+            # Log a preview of the conflict content before discarding
+            try:
+                with open(
+                    conflict_file, "r", encoding="utf-8", errors="replace"
+                ) as cf:
+                    preview = cf.read(500)
+                logger.warning(
+                    f"Discarding conflict file {conflict_file}. "
+                    f"Preview:\n{preview}"
+                )
+            except Exception:
+                logger.warning(
+                    f"Discarding conflict file {conflict_file} "
+                    f"(could not read preview)."
+                )
+            os.remove(conflict_file)
+            logger.info(
+                f"Deleted conflict file to maintain Obsidian authority: {conflict_file}"
+            )
+        except OSError as e:
+            logger.error(f"Failed to delete conflict file {conflict_file}: {e}")
