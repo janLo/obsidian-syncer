@@ -72,3 +72,24 @@ Tools like the `ob` CLI and `nextcloudcmd` store their session tokens and sync c
 
 > [!NOTE]
 > **In summary:** The container boots up, reads your **Instructions** (`config.yaml`), uses its **Memory** (`/root/.config`) to remember you're already logged in, and manages your notes in the **Workspace** (`/vaults`).
+
+## Troubleshooting
+
+If you encounter issues during synchronization, you can enable more detailed logging by setting the `LOG_LEVEL` environment variable to `DEBUG`. 
+
+In your `docker-compose.yml`, add it to the `environment` section:
+
+```yaml
+    environment:
+      - LOG_LEVEL=DEBUG
+      # ... other environment variables ...
+```
+
+Or pass it via the Docker CLI:
+
+```bash
+docker run -d \
+  # ... other flags ...
+  -e LOG_LEVEL=DEBUG \
+  ghcr.io/janlo/obsidian-syncer:latest
+```

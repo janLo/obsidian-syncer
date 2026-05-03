@@ -10,8 +10,13 @@ from .obsidian import obsidian_manager
 from .nextcloud import sync_nextcloud
 from .keep import sync_keep
 
+import os
+
+log_level_str = os.environ.get("LOG_LEVEL", "INFO").upper()
+log_level = getattr(logging, log_level_str, logging.INFO)
+
 logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+    level=log_level, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
 )
 logger = logging.getLogger(__name__)
 
