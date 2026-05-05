@@ -25,6 +25,8 @@ class KeepConfig(BaseModel):
     inline_tags_label: Optional[str] = None
     mark_synced_tag: Optional[str] = None
     target_folder: str
+    include_filter_tags: bool = True
+    extra_tags: list[str] = []
 
 
 class SyncSet(BaseModel):

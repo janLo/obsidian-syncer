@@ -244,6 +244,12 @@ def sync_keep(config: KeepConfig):
                 )
             continue
 
+        if not config.include_filter_tags:
+            note_tags_names -= required_tag_names
+
+        if config.extra_tags:
+            note_tags_names.update(t.lower() for t in config.extra_tags)
+
         # 5. Format and Save Note
         content = format_note_content(note, note_tags_names)
         try:
